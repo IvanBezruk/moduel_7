@@ -1,20 +1,6 @@
 from datetime import datetime, timedelta
 from collections import UserDict
 
-def input_error(func):
-    def inner(*args, **kwargs):
-        try:
-            return func(*args, *kwargs)
-        except ValueError as e:
-            return str(e)
-        except KeyError:
-            return "Contact not found"
-        except IndexError:
-            return "Invalid command format. Please check the arguments."
-        except Exception as e:
-            return f"An error occurred: {str(e)}"
-    return inner
-
 class Field:
     def __init__(self, value):
         self.value = value
@@ -39,8 +25,15 @@ class Birthday(Field):
         try:
             # Додайте перевірку коректності даних
             # та перетворіть рядок на об'єкт datetime
-            datetime.strptime(value, "%d.%m.%Y")
-            super().__init__(value)
+            datetime_obj = datetime.strptime(value, "%d.%m.%Y")
+
+            #Додав додаткову перевірку коректності дати
+            if datetime_obj.date() > datetime.today().date():
+                raise ValueError("Birthday cannot be in the future")
+            
+            #Зберігаю у вигляді datetime
+            super().__init__(datetime_obj)
+
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
 
@@ -62,8 +55,7 @@ class Record:
         phone_to_edit = self.find_phone(old_phone)
         if phone_to_edit:
             if not Phone(new_phone).validate_phone(new_phone):
-                raise ValueError("New phone number must be 10 digits")
-            phone_to_edit.value = new_phone
+                phone_to_edit.value = new_phone
         else:
             raise ValueError("Phone number not found")
 
@@ -126,6 +118,22 @@ class AddressBook(UserDict):
         
         return upcoming_birthdays
 
+def input_error(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, *kwargs)
+        except ValueError as e:
+            return str(e)
+        except KeyError:
+            return "Contact not found"
+        except AttributeError:
+            return "Contact not found"
+        except IndexError:
+            return "Invalid command format. Please check the arguments."
+        except Exception as e:
+            return f"An error occurred: {str(e)}"
+    return inner
+
 def parse_input(user_input):
     cmd, *args = user_input.split()
     cmd = cmd.strip().lower()
@@ -133,12 +141,8 @@ def parse_input(user_input):
 
 @input_error
 def add_contact(args, book: AddressBook):
-    if len(args) < 2:
-        raise IndexError("Please provide name and phone number")
-    
-    name = args[0]
-    phone = args[1]
-
+       
+    name, phone = args
     record = book.find(name)
     message = "Contact updated."
     if record is None:
@@ -151,27 +155,19 @@ def add_contact(args, book: AddressBook):
 
 @input_error
 def change_contact(args, book: AddressBook):
-    if len(args) < 3:
-        raise IndexError("Please provide name, old phone, and new phone")
-    
-    name, old_phone, new_phone, *_ = args
+        
+    name, old_phone, new_phone = args
     record = book.find(name)
-    if record is None:
-        raise KeyError("Contact not found")
-    
+        
     record.edit_phone(old_phone, new_phone)
     return "Contact updated."
 
 @input_error
 def show_phone(args, book: AddressBook):
-    if len(args) < 1:
-        raise IndexError("Please provide contact name")
-    
+        
     name = args[0]
     record = book.find(name)
-    if record is None:
-        raise KeyError("Contact not found")
-    
+        
     if record.phones:
         phones = ', '.join(phone.value for phone in record.phones)
         return f"{name}: {phones}"
@@ -190,29 +186,19 @@ def show_all(args, book: AddressBook):
 
 @input_error
 def add_birthday(args, book: AddressBook):
-    
-    if len(args) < 2:
-        raise IndexError("Please provide name and birthday (DD.MM.YYYY)")
-    
-    name, birthday, *_ = args
+     
+    name, birthday = args
     record = book.find(name)
-    if record is None:
-        raise KeyError("Contact not found")
-    
+        
     record.add_birthday(birthday)
     return "Birthday added."
 
 @input_error
 def show_birthday(args, book: AddressBook):
-    
-    if len(args) < 1:
-        raise IndexError("Please provide contact name")
-    
+      
     name = args[0]
     record = book.find(name)
-    if record is None:
-        raise KeyError("Contact not found")
-    
+        
     if record.birthday:
         return f"{name}'s birthday: {record.birthday.value}"
     else:
@@ -236,7 +222,10 @@ def main():
     print("Welcome to the assistant bot!")
     
     while True:
-        user_input = input("Enter a command: ")
+        user_input = input("Enter a command: ").strip()
+        if not user_input:
+            continue
+            
         command, args = parse_input(user_input)   # <-- FIXED here
 
         if command in ["close", "exit"]:
