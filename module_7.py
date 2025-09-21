@@ -21,18 +21,14 @@ class Phone(Field):
         return phone.isdigit() and len(phone) == 10
 
 class Birthday(Field):
-    def __init__(self, value):
+    def __init__(self, value: str):
         try:
-            # Додайте перевірку коректності даних
-            # та перетворіть рядок на об'єкт datetime
             datetime_obj = datetime.strptime(value, "%d.%m.%Y")
 
-            #Додав додаткову перевірку коректності дати
             if datetime_obj.date() > datetime.today().date():
                 raise ValueError("Birthday cannot be in the future")
             
-            #Зберігаю у вигляді datetime
-            super().__init__(datetime_obj)
+            super().__init__(value)
 
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
@@ -52,12 +48,13 @@ class Record:
             self.phones.remove(phone_to_remove)
 
     def edit_phone(self, old_phone, new_phone):
-        phone_to_edit = self.find_phone(old_phone)
-        if phone_to_edit:
-            if not Phone(new_phone).validate_phone(new_phone):
-                phone_to_edit.value = new_phone
-        else:
+        phone_to_edit = self.find_phone(old_phone.strip())
+        if not phone_to_edit:
             raise ValueError("Phone number not found")
+        
+        validated_phone = Phone(new_phone)
+                
+        self.phones[self.phones.index(phone_to_edit)] = validated_phone        
 
     def find_phone(self, phone):
         for p in self.phones:
