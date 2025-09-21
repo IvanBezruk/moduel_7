@@ -23,11 +23,14 @@ class Phone(Field):
 class Birthday(Field):
     def __init__(self, value: str):
         try:
+            # Validate format
             datetime_obj = datetime.strptime(value, "%d.%m.%Y")
 
+            # Extra validation - cannot be a future date
             if datetime_obj.date() > datetime.today().date():
                 raise ValueError("Birthday cannot be in the future")
             
+            # Store only the original string in DD.MM.YYYY format
             super().__init__(value)
 
         except ValueError:
@@ -118,7 +121,7 @@ class AddressBook(UserDict):
 def input_error(func):
     def inner(*args, **kwargs):
         try:
-            return func(*args, *kwargs)
+            return func(*args, **kwargs)
         except ValueError as e:
             return str(e)
         except KeyError:
