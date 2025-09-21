@@ -23,18 +23,11 @@ class Phone(Field):
 class Birthday(Field):
     def __init__(self, value: str):
         try:
-            # Validate format
-            datetime_obj = datetime.strptime(value, "%d.%m.%Y")
-
-            # Extra validation - cannot be a future date
-            if datetime_obj.date() > datetime.today().date():
-                raise ValueError("Birthday cannot be in the future")
-            
-            # Store only the original string in DD.MM.YYYY format
-            super().__init__(value)
-
+            datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
+        
+        super().__init__(value)
 
 class Record:
     def __init__(self, name):
